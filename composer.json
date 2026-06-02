@@ -1,4 +1,6 @@
 {
+    "name": "ronaldo/user-access-api",
+    "description": "Backend Symfony pour la gestion des utilisateurs: inscription, connexion et profil.",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
