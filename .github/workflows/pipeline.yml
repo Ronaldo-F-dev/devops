@@ -1,16 +1,67 @@
-name: Hello Workflow
+name: CI
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  helloworld:
+  symfony:
     runs-on: ubuntu-latest
+
+    services:
+      database:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: app
+          MYSQL_USER: app
+          MYSQL_PASSWORD: app
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u app -papp"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      APP_ENV: test
+      DATABASE_URL: mysql://app:app@127.0.0.1:3306/app?serverVersion=8.4&charset=utf8mb4
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Say Hello
-        run: echo "Hello, John"
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          tools: composer
+          extensions: intl, pdo_mysql, zip, opcache
+          coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Check PHP syntax
+        run: find src config public migrations -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Run database migrations
+        run: php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+      - name: Validate Doctrine schema
+        run: php bin/console doctrine:schema:validate
+
+      - name: Run tests when present
+        run: |
+          if [ -x vendor/bin/phpunit ] && [ -d tests ]; then
+            vendor/bin/phpunit
+          else
+            echo "No PHPUnit tests found, skipping."
+          fi
