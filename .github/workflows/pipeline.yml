@@ -49,6 +49,15 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      - name: Prepare test database
+        run: |
+          php -r '
+          $pdo = new PDO("mysql:host=127.0.0.1;port=3306", "root", "root");
+          $pdo->exec("CREATE DATABASE IF NOT EXISTS app_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+          $pdo->exec("GRANT ALL PRIVILEGES ON app_test.* TO 'app'@'%'");
+          $pdo->exec("FLUSH PRIVILEGES");
+          '
+
       - name: Check PHP syntax
         run: find src config public migrations -name '*.php' -print0 | xargs -0 -n1 php -l
 
