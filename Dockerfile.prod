@@ -1,0 +1,37 @@
+# --- Étape 1 : Build (Installation des dépendances) ---
+FROM php:8.4-cli-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        unzip \
+        libicu-dev \
+        libzip-dev \
+    && docker-php-ext-install intl zip pdo_mysql
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+COPY . .
+
+# Installation des dépendances sans les outils de dev, et optimisation de l'autoloader
+RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader
+
+# --- Étape 2 : Runtime Production ---
+FROM php:8.4-fpm-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libicu-dev \
+        libzip-dev \
+    && docker-php-ext-install intl zip pdo_mysql \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /var/www/html
+
+# On copie uniquement le code et le dossier vendor optimisé depuis l'étape 'builder'
+COPY --from=builder /app /var/www/html
+
+# Configuration des permissions pour l'utilisateur de production (www-data)
+RUN chown -R www-data:www-data /var/www/html/var
+
+EXPOSE 9000
+CMD ["php-fpm"]

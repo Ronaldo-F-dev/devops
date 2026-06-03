@@ -1,4 +1,3 @@
-
 services:
   app:
     build:
@@ -17,11 +16,14 @@ services:
     volumes:
       - ./:/app
       - vendor:/app/vendor
-    command: sh -lc "composer install --no-interaction --no-progress --prefer-dist && php -S 0.0.0.0:8000 -t public"
+    # Ajout du git config safe.directory avant le composer install
+    command: >
+      sh -c "git config --global --add safe.directory /app && 
+             composer install --no-interaction --no-progress --prefer-dist && 
+             php -S 0.0.0.0:8000 -t public"
 
-  ###> doctrine/doctrine-bundle ###
   database:
-    image: mysql:${MYSQL_VERSION:-8.4}
+    image: mysql:${MYSQL_VERSION:-8.4.9}
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-app}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-app}
@@ -29,15 +31,13 @@ services:
       MYSQL_USER: ${MYSQL_USER:-app}
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "${MYSQL_USER:-app}", "-p${MYSQL_PASSWORD:-app}"]
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
     volumes:
       - database_data:/var/lib/mysql:rw
-  ###< doctrine/doctrine-bundle ###
 
 volumes:
-  ###> doctrine/doctrine-bundle ###
   database_data:
   vendor:
-  ###< doctrine/doctrine-bundle ###
