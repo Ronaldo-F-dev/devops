@@ -13,8 +13,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 COPY . .
 
+ENV APP_ENV=prod
+
 # Installation des dépendances sans les outils de dev, et optimisation de l'autoloader
-RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader
+RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader --no-scripts
 
 # --- Étape 2 : Runtime Production ---
 FROM php:8.4-fpm-bookworm
@@ -25,7 +27,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-install intl zip pdo_mysql \
     && rm -rf /var/lib/apt/lists/*
 
+
 WORKDIR /var/www/html
+
+# --- MODIFICATION ICI : On s'assure que var/ existe, puis on change le propriétaire ---
+RUN mkdir -p var && chown -R www-data:www-data /var/www/html/var
 
 # On copie uniquement le code et le dossier vendor optimisé depuis l'étape 'builder'
 COPY --from=builder /app /var/www/html
