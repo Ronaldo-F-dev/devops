@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mon-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mon-nginx
+  template:
+    metadata:
+      labels:
+        app: mon-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          volumeMounts:
+            - name: stockage-nginx
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: stockage-nginx
+          persistentVolumeClaim:
+            claimName: mon-pvc
